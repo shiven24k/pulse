@@ -19,6 +19,15 @@ export const io = new Server(server, {
   }
 });
 
+//To listen connectors for debugging
+io.on("connection", (socket) => {
+  console.log("Client connected with ID:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected");
+  });
+});
+
 app.use(cors());
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));

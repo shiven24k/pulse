@@ -11,12 +11,13 @@ export const startProcessing = async (videoId) => {
       progress: value,
       status: status
     });
+    const payload = { videoId, progress: value, status };
 
-    io.emit("video-progress", {
-      videoId,
-      progress: value,
-      status
-    });
+    // Send the payload to client
+    io.emit("video-progress", payload);
+
+    // Console print to verify
+    console.log(`Uploading Progress: ${value}% - Status: ${status}`);
   };
 
   await update(10, "processing");
