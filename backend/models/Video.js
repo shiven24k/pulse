@@ -7,9 +7,14 @@ const videoSchema = new mongoose.Schema({
   path: String,
   size: Number,
 
+  qualities:{
+  "1080p": { type: String, default: null },
+    "720p": { type: String, default: null },
+    "480p": { type: String, default: null }
+  },
   status: {
     type: String,
-    enum: ["uploading","processing","safe","flagged"],
+    enum: ["uploading", "analyzing", "processing", "safe", "flagged"],
     default: "uploading"
   },
 

@@ -27,21 +27,20 @@ router.get("/", auth, async (req, res) => {
 }); 
 router.get("/:id/stream", auth, async (req, res) => {
   try {
-    const video = await Video.findOne({ 
-      _id: req.params.id, 
-      userId: req.user.id 
-    });
+    const video = await Video.findOne({ _id: req.params.id, userId: req.user.id });
+    if (!video) return res.status(404).json({ error: "Not found" });
 
-    if (!video) {
-      return res.status(404).json({ error: "Video not found or unauthorized" });
-    }
+    // Determine which quality to serve (default to 720p if available, else original)
+    const requestedQuality = req.query.quality || "720p";
+    const videoPath = video.qualities[requestedQuality] || video.path;
 
-    const videoPath = video.path;
     const videoSize = fs.statSync(videoPath).size;
-
     const range = req.headers.range;
-    
-    // NEW: Handle the browser's initial "probe" request gracefully
+
+    // IMPLEMENT LAYER 1 CACHE STRATEGY (HTTP Headers)
+    res.setHeader("Cache-Control", "public, max-age=86400"); // Cache for 1 day
+    res.setHeader("Accept-Ranges", "bytes");
+
     if (!range) {
       const headers = {
         "Content-Length": videoSize,
@@ -49,29 +48,26 @@ router.get("/:id/stream", auth, async (req, res) => {
       };
       res.writeHead(200, headers);
       fs.createReadStream(videoPath).pipe(res);
-      return; // Stop execution here
+      return;
     }
 
-    // Existing chunking logic
-    const CHUNK_SIZE = 10 ** 6; // 1MB
+    const CHUNK_SIZE = 10 ** 6; // 1MB chunks
     const start = Number(range.replace(/\D/g, ""));
     const end = Math.min(start + CHUNK_SIZE - 1, videoSize - 1);
-
     const contentLength = end - start + 1;
+
     const headers = {
       "Content-Range": `bytes ${start}-${end}/${videoSize}`,
-      "Accept-Ranges": "bytes",
       "Content-Length": contentLength,
       "Content-Type": "video/mp4",
     };
 
     res.writeHead(206, headers);
-    const videoStream = fs.createReadStream(videoPath, { start, end });
-    videoStream.pipe(res);
+    fs.createReadStream(videoPath, { start, end }).pipe(res);
 
   } catch (error) {
-    console.error("Streaming error:", error);
-    res.status(500).json({ error: "Error streaming video" });
+    console.error("Stream error:", error);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
