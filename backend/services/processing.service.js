@@ -5,12 +5,10 @@ import fs from "fs";
 import path from "path";
 import * as tf from "@tensorflow/tfjs";
 import * as nsfwjs from "nsfwjs";
-import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
-import ffprobeInstaller from "@ffprobe-installer/ffprobe";
 import jpeg from "jpeg-js";
 
-ffmpeg.setFfmpegPath(ffmpegInstaller.path);
-ffmpeg.setFfprobePath(ffprobeInstaller.path);
+// Render (Linux) has ffmpeg pre-installed — no installer needed
+// For local Windows dev, install ffmpeg and add it to PATH
 
 // --- Helper 1: Extract MULTIPLE frames ---
 const extractFrames = (inputPath, outputFolder, baseName) => {
