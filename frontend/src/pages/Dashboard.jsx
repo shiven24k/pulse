@@ -22,7 +22,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchVideos();
-    const socket = io("http://localhost:5000");
+    const socket = io(import.meta.env.VITE_API_URL);
     if (user?.id) socket.emit("join_user_room", user.id);
 
     socket.on("video-progress", (data) => {
@@ -39,7 +39,7 @@ export default function Dashboard() {
 
  const fetchVideos = async () => {
   try {
-    const res = await axios.get("http://localhost:5000/videos");
+    const res = await axios.get(`${import.meta.env.VITE_API_URL}/videos`);
     setVideos(res.data);
   } catch (err) { 
     // Don't show the error toast if the user is just a viewer 
@@ -62,7 +62,7 @@ export default function Dashboard() {
     formData.append("video", file);
     setUploading(true);
     try {
-      const res = await axios.post("http://localhost:5000/videos", formData);
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/videos`, formData);
       setVideos([res.data, ...videos]);
     } catch (err) {
       setError(err.response?.data?.error || "Upload failed.");
@@ -72,7 +72,7 @@ export default function Dashboard() {
   const handleDelete = async (id) => {
     if (!window.confirm("Permanent delete? This saves server space.")) return;
     try {
-      await axios.delete(`http://localhost:5000/videos/${id}`);
+      await axios.delete(`${import.meta.env.VITE_API_URL}/videos/${id}`);
       setVideos(videos.filter((v) => v._id !== id));
       if (selectedVideo?._id === id) setSelectedVideo(null);
     } catch (err) { alert("Delete failed. Admins only."); }
@@ -158,7 +158,7 @@ export default function Dashboard() {
                       ))}
                     </div>
                   </div>
-                  <HlsVideoPlayer src={`http://localhost:5000/${selectedVideo.qualities[quality]}`} />
+                  <HlsVideoPlayer src={`${import.meta.env.VITE_API_URL}/${selectedVideo.qualities[quality]}`} />
                 </motion.section>
               )}
             </AnimatePresence>

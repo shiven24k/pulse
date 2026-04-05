@@ -15,7 +15,11 @@ const app = express();
 const server = http.createServer(app);
 
 // 1. GLOBAL MIDDLEWARE
-app.use(cors());
+const corsOptions = {
+  origin: process.env.CLIENT_URL || "http://localhost:5173",
+  credentials: true
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // 2. STATIC FILES (CORS for HLS streaming)
@@ -27,7 +31,7 @@ app.use("/videos", videoRoutes);
 
 // 4. SOCKET.IO
 export const io = new Server(server, {
-  cors: { origin: "*" }
+  cors: { origin: process.env.CLIENT_URL || "http://localhost:5173", credentials: true }
 });
 
 io.on("connection", (socket) => {
@@ -40,6 +44,6 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("🚀 Mongo connected"))
   .catch(err => console.log("❌ Mongo error:", err));
 
-server.listen(5000, () => {
-  console.log("⚡ Server running on port 5000");
+server.listen(process.env.PORT || 5000, () => {
+  console.log(`⚡ Server running on port ${process.env.PORT || 5000}`);
 });

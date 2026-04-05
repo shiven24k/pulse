@@ -14,7 +14,7 @@ export default function AdminPanel() {
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/auth/users", {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/auth/users`, {
         headers: { 
           Authorization: `Bearer ${localStorage.getItem("token")}` 
         }
@@ -31,7 +31,7 @@ export default function AdminPanel() {
     try {
       const token = localStorage.getItem("token");
       await axios.patch(
-        `http://localhost:5000/auth/users/${userId}/role`, 
+        `${import.meta.env.VITE_API_URL}/auth/users/${userId}/role`, 
         { role: newRole },
         { headers: { Authorization: `Bearer ${token}` } }
       );
