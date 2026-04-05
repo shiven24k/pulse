@@ -4,7 +4,30 @@ A full-stack video management and streaming platform with AI content moderation,
 
 ---
 
-## Live Deployment
+## Demo Credentials
+
+Use these accounts to explore the platform without registering.
+
+### Admin
+- Email: `adminForContent@pulse.com`
+- Password: `pulseadmin1234`
+- Can: manage user roles, delete videos, upload, view everything
+
+### Editor
+- Email: `staffEditorSam@pulse.com`
+- Password: `SamEdits`
+- Can: upload videos, track processing, view safe content
+
+### Viewer
+- Email: `userMe@pulse.com`
+- Password: `userMe1234`
+- Can: watch safe videos only, no upload access
+
+> New registrations default to the Viewer role. An Admin can promote any user to Editor or Admin from the Users panel.
+
+---
+
+
 
 - Frontend: https://pulse-topaz-pi.vercel.app
 - Backend API: https://pulse-nkqh.onrender.com
