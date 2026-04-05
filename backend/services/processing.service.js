@@ -12,37 +12,108 @@ import jpeg from "jpeg-js";
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 ffmpeg.setFfprobePath(ffprobeInstaller.path);
 
-// --- Helper 1: Extract a frame for analysis ---
-const extractFrame = (inputPath, outputFolder, filename) => {
+// --- Helper 1: Extract MULTIPLE frames ---
+const extractFrames = (inputPath, outputFolder, baseName) => {
   return new Promise((resolve, reject) => {
+    let generatedFiles = [];
     ffmpeg(inputPath)
       .screenshots({
-        timestamps: ['50%'], // Grab a frame from the middle of the video
-        filename: filename,
+        timestamps: ["20%", "50%", "80%"],
+        filename: `${baseName}-frame-%i.jpg`,
         folder: outputFolder,
       })
-      .on('end', () => resolve(path.join(outputFolder, filename)))
-      .on('error', (err) => reject(err));
+      .on("filenames", (filenames) => {
+        generatedFiles = filenames.map((f) => path.join(outputFolder, f));
+      })
+      .on("end", () => resolve(generatedFiles))
+      .on("error", (err) => reject(err));
   });
 };
 
-// --- Helper 2: Compress Video ---
-const compressVideo = (inputPath, resolution, outputName) => {
+// --- Helper 2: Generate HLS Stream ---
+const generateHLS = (inputPath, resolution, qualityName, outputDir) => {
   return new Promise((resolve, reject) => {
-    const outputPath = `uploads/${outputName}`;
+    const playlistPath = path.join(outputDir, `${qualityName}.m3u8`);
+    const segmentPath = path.join(outputDir, `${qualityName}_%03d.ts`);
+
     ffmpeg(inputPath)
       .size(resolution)
       .outputOptions([
-        '-preset fast',      // Safer preset for actual processing
-        '-movflags faststart', 
-        '-c:v libx264'         
+        "-preset fast",
+        "-c:v libx264",
+        "-c:a aac",
+        "-hls_time 4",
+        "-hls_playlist_type vod",
+        `-hls_segment_filename ${segmentPath}`,
       ])
-      .save(outputPath)
-      .on('end', () => resolve(outputPath))
-      .on('error', (err) => reject(err));
+      .output(playlistPath)
+      .on("end", () => resolve(playlistPath))
+      .on("error", (err) => reject(err))
+      .run();
   });
 };
 
+// --- Helper 3: AI Moderation (FIXED URL & STRICTER GORE) ---
+const checkViolenceAndChaos = async (framePath) => {
+  try {
+    const PAT = process.env.CLARIFAI_PAT;
+    const USER_ID = process.env.CLARIFAI_USER_ID;
+    const APP_ID = process.env.CLARIFAI_APP_ID;
+
+    const imageBytes = fs.readFileSync(framePath, { encoding: "base64" });
+
+    // FIXED: Using direct model endpoint to solve "Resource does not exist"
+    const response = await fetch(
+      `https://api.clarifai.com/v2/models/moderation-recognition/outputs`,
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Key ${PAT}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_app_id: { user_id: USER_ID, app_id: APP_ID },
+          inputs: [{ data: { image: { base64: imageBytes } } }],
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (result.status && result.status.code !== 10000) {
+      console.error("❌ Clarifai API Error:", result.status.description);
+      return true; // Fail-safe
+    }
+
+    if (!result.outputs || !result.outputs[0].data) {
+      console.error("❌ API Response empty or malformed.");
+      return true;
+    }
+
+    const concepts = result.outputs[0].data.concepts;
+    let isSafe = true;
+
+    for (const concept of concepts) {
+      // NEW: Stricter limit for violence/gore (35%) vs others (50%)
+     let dangerLimit = 0.50; 
+  if (concept.name === 'explicit') dangerLimit = 0.85;
+  if (concept.name === 'gore' || concept.name === 'weapon') dangerLimit = 0.35;
+
+  if (["gore", "drug", "weapon", "explicit"].includes(concept.name) && concept.value > dangerLimit) {
+    console.log(`🚨 CLARIFAI DANGER: ${concept.name.toUpperCase()} (${Math.round(concept.value * 100)}%)`);
+    isSafe = false;
+    break;
+  }
+    }
+    return isSafe;
+  } catch (error) {
+    console.error("AI System Crash:", error.message);
+    return true; // Fail-safe
+  }
+};
+
+// --- THE MAIN PROCESSING PIPELINE ---
 export const startProcessing = async (videoId) => {
   try {
     const video = await Video.findById(videoId);
@@ -55,79 +126,83 @@ export const startProcessing = async (videoId) => {
     };
 
     const baseName = path.parse(video.filename).name;
-    const frameFilename = `${baseName}-frame.jpg`;
 
-    // --- PHASE 1: ACTUAL SENSITIVITY ANALYSIS (Pure JS) ---
+    // --- PHASE 1: SENSITIVITY ANALYSIS ---
     await update(10, "analyzing");
-    
-    // 1. Extract a frame
-    const framePath = await extractFrame(video.path, 'uploads', frameFilename);
-
-    // 2. Load the NSFW model
+    const framePaths = await extractFrames(video.path, "uploads", baseName);
     const model = await nsfwjs.load();
 
-    // 3. Read and decode the image entirely in JS (No C++ Canvas needed!)
-    const imageBuffer = fs.readFileSync(framePath);
-    const jpegData = jpeg.decode(imageBuffer, true);
-    
-    // 4. Manually convert the RGBA image data into an RGB Tensor
-    const numChannels = 3;
-    const numPixels = jpegData.width * jpegData.height;
-    const values = new Int32Array(numPixels * numChannels);
+    let isVideoSafe = true;
+    let flagReason = "";
 
-    for (let i = 0; i < numPixels; i++) {
-      values[i * numChannels + 0] = jpegData.data[i * 4 + 0]; // R
-      values[i * numChannels + 1] = jpegData.data[i * 4 + 1]; // G
-      values[i * numChannels + 2] = jpegData.data[i * 4 + 2]; // B
+    for (const framePath of framePaths) {
+      const imageBuffer = fs.readFileSync(framePath);
+      const jpegData = jpeg.decode(imageBuffer, true);
+      const numChannels = 3;
+      const numPixels = jpegData.width * jpegData.height;
+      const values = new Int32Array(numPixels * numChannels);
+
+      for (let i = 0; i < numPixels; i++) {
+        values[i * numChannels + 0] = jpegData.data[i * 4 + 0];
+        values[i * numChannels + 1] = jpegData.data[i * 4 + 1];
+        values[i * numChannels + 2] = jpegData.data[i * 4 + 2];
+      }
+
+      const tensor = tf.tensor3d(values, [jpegData.height, jpegData.width, numChannels], "int32");
+      const predictions = await model.classify(tensor);
+      tensor.dispose();
+
+      const topPrediction = predictions[0].className;
+      const confidence = predictions[0].probability;
+
+
+      const isNsfwSafe = !(
+        ["Porn", "Hentai"].includes(topPrediction) && confidence > 0.80
+      );
+
+      const isViolenceSafe = await checkViolenceAndChaos(framePath);
+
+      if (!isNsfwSafe || !isViolenceSafe) {
+        isVideoSafe = false;
+        flagReason = !isNsfwSafe ? `NSFW (${topPrediction} ${Math.round(confidence * 100)}%)` : "Violence/Gore";
+        break;
+      }
     }
 
-    const tensor = tf.tensor3d(values, [jpegData.height, jpegData.width, numChannels], 'int32');
-    
-    // 5. Classify the Tensor
-    const predictions = await model.classify(tensor);
-    tensor.dispose(); // CRITICAL: Free up memory
-    fs.unlinkSync(framePath); // Cleanup the extracted frame
+    framePaths.forEach((f) => fs.existsSync(f) && fs.unlinkSync(f));
 
-    // 6. Determine if safe
-    const topPrediction = predictions[0].className;
-    const isSafe = !["Porn", "Hentai", "Sexy"].includes(topPrediction);
-
-    if (!isSafe) {
-      console.log("🚨 NSFW Content Detected:", predictions);
-      await update(100, "flagged");
-      return; 
+    if (!isVideoSafe) {
+      console.log(`🚨 Flagged: ${flagReason}`);
+      await update(0, "flagged");
+      return;
     }
-    // --- PHASE 2: SAFE VIDEO COMPRESSION (Sequential) ---
+
+    // --- PHASE 2: HLS GENERATION ---
     await update(30, "processing");
-    console.log("✅ Content is safe. Starting 1080p compression...");
+    const hlsFolder = `uploads/${videoId}`;
+    if (!fs.existsSync(hlsFolder)) fs.mkdirSync(hlsFolder, { recursive: true });
 
-    // Process sequentially to prevent crashing your local machine
-    const path1080 = await compressVideo(video.path, '1920x1080', `${baseName}-1080p.mp4`);
-    
+    const p1080 = await generateHLS(video.path, "1920x1080", "1080p", hlsFolder);
     await update(60, "processing");
-    console.log("✅ 1080p done. Starting 720p compression...");
-    
-    const path720 = await compressVideo(video.path, '1280x720', `${baseName}-720p.mp4`);
 
+    const p720 = await generateHLS(video.path, "1280x720", "720p", hlsFolder);
     await update(90, "processing");
-    console.log("✅ 720p done. Starting 480p compression...");
 
-    const path480 = await compressVideo(video.path, '854x480', `${baseName}-480p.mp4`);
+    const p480 = await generateHLS(video.path, "854x480", "480p", hlsFolder);
 
     // --- PHASE 3: FINALIZE ---
     await Video.findByIdAndUpdate(videoId, {
-      "qualities.1080p": path1080,
-      "qualities.720p": path720,
-      "qualities.480p": path480,
+      "qualities.1080p": p1080.replace(/\\/g, "/"),
+      "qualities.720p": p720.replace(/\\/g, "/"),
+      "qualities.480p": p480.replace(/\\/g, "/"),
       progress: 100,
-      status: "safe"
+      status: "safe",
     });
 
     io.emit("video-progress", { videoId, progress: 100, status: "safe" });
-    console.log(`🎉 Video optimized and ready for streaming!`);
-
+    console.log(`🎉 HLS Stream Ready!`);
   } catch (error) {
-    console.error("Processing failed:", error);
+    console.error("Process Fail:", error);
     await Video.findByIdAndUpdate(videoId, { status: "flagged", progress: 0 });
   }
 };

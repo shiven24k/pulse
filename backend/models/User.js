@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String,
     enum: ["viewer", "editor", "admin"],
-    default: "editor"
+    default: "viewer"
   }
 }, { timestamps: true });
 
