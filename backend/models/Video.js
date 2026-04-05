@@ -19,10 +19,8 @@ const videoSchema = new mongoose.Schema({
     default: "uploading"
   },
 
-  progress: {
-    type: Number,
-    default: 0
-  },
+  progress: { type: Number, default: 0 },
+  flagReason: { type: String, default: null },
 
   userId: {
     type: mongoose.Schema.Types.ObjectId,

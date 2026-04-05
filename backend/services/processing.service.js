@@ -149,7 +149,8 @@ export const startProcessing = async (videoId) => {
 
     if (!isVideoSafe) {
       console.log(`🚨 Flagged: ${flagReason}`);
-      await update(0, "flagged");
+      await Video.findByIdAndUpdate(videoId, { progress: 0, status: "flagged", flagReason });
+      io.emit("video-progress", { videoId, progress: 0, status: "flagged", flagReason });
       return;
     }
 

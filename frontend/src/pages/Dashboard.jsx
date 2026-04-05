@@ -37,12 +37,10 @@ useEffect(() => {
     setVideos((prev) =>
       prev.map((vid) =>
         vid._id === data.videoId 
-          ? { ...vid, progress: data.progress, status: data.status } 
+          ? { ...vid, progress: data.progress, status: data.status, flagReason: data.flagReason } 
           : vid
       )
     );
-    
-    // Logic check: If it's safe, re-fetch to get the fresh HLS URL
     if (data.status === "safe") fetchVideos();
   });
 
@@ -201,7 +199,10 @@ useEffect(() => {
                       <div className="flex-1">
                         <p className="font-bold text-slate-800 leading-tight">{vid.title}</p>
                         <div className="flex items-center gap-4 mt-1">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{vid.status}</span>
+                          <span className={`text-[10px] font-black uppercase tracking-widest ${vid.status === 'flagged' ? 'text-red-400' : 'text-slate-400'}`}>{vid.status}</span>
+                          {vid.status === 'flagged' && vid.flagReason && (
+                            <span className="text-[10px] font-bold text-red-400 bg-red-50 px-2 py-0.5 rounded-lg">{vid.flagReason}</span>
+                          )}
                           {vid.progress < 100 && vid.status !== "flagged" && (
                             <div className="w-32 h-1 bg-slate-100 rounded-full overflow-hidden">
                               <motion.div className="h-full bg-indigo-500" initial={{ width: 0 }} animate={{ width: `${vid.progress}%` }} />
