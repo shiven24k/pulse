@@ -1,11 +1,11 @@
 import express from "express";
 import multer from "multer";
 import fs from "fs";
-import path from "path";
 import Video from "../models/Video.js";
-import auth, { authorize } from "../middleware/auth.js"; // Import authorize
+import auth, { authorize } from "../middleware/auth.js";
 import { startProcessing } from "../services/processing.service.js";
 import { checkUploadLimit } from "../middleware/uploadLimit.js";
+import { deleteVideoFromCloudinary } from "../services/cloudinary.service.js";
 
 const router = express.Router();
 const upload = multer({ dest: "uploads/" });
@@ -56,28 +56,15 @@ router.delete("/:id", auth, authorize('admin'), async (req, res) => {
     const video = await Video.findById(req.params.id);
     if (!video) return res.status(404).json({ error: "Video not found" });
 
-    // File cleanup
-    if (fs.existsSync(video.path)) fs.unlinkSync(video.path);
-    const hlsFolder = path.join("uploads", video._id.toString());
-    if (fs.existsSync(hlsFolder)) fs.rmSync(hlsFolder, { recursive: true, force: true });
+    // Cleanup local file + Cloudinary asset
+    if (video.path && fs.existsSync(video.path)) fs.unlinkSync(video.path);
+    if (video.cloudinaryId) await deleteVideoFromCloudinary(video.cloudinaryId);
 
     await Video.findByIdAndDelete(req.params.id);
     res.json({ message: "Video deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: "Delete failed" });
   }
-});
-
-// routes/admin.routes.js
-router.get("/users", auth, authorize('admin'), async (req, res) => {
-  const users = await User.find({}, "-password");
-  res.json(users);
-});
-
-router.patch("/users/:id/role", auth, authorize('admin'), async (req, res) => {
-  const { role } = req.body;
-  await User.findByIdAndUpdate(req.params.id, { role });
-  res.json({ message: "User role updated." });
 });
 
 export default router;

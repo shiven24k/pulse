@@ -5,6 +5,7 @@ const videoSchema = new mongoose.Schema({
   title: String,
   filename: String,
   path: String,
+  cloudinaryId: String,
   size: Number,
 
   qualities:{

@@ -6,11 +6,12 @@ import path from "path";
 import * as tf from "@tensorflow/tfjs";
 import * as nsfwjs from "nsfwjs";
 import jpeg from "jpeg-js";
+import { uploadVideoToCloudinary, getHLSUrl } from "./cloudinary.service.js";
 
 // Render (Linux) has ffmpeg pre-installed — no installer needed
 // For local Windows dev, install ffmpeg and add it to PATH
 
-// --- Helper 1: Extract MULTIPLE frames ---
+// --- Helper: Extract MULTIPLE frames ---
 const extractFrames = (inputPath, outputFolder, baseName) => {
   return new Promise((resolve, reject) => {
     let generatedFiles = [];
@@ -28,30 +29,7 @@ const extractFrames = (inputPath, outputFolder, baseName) => {
   });
 };
 
-// --- Helper 2: Generate HLS Stream ---
-const generateHLS = (inputPath, resolution, qualityName, outputDir) => {
-  return new Promise((resolve, reject) => {
-    const playlistPath = path.join(outputDir, `${qualityName}.m3u8`);
-    const segmentPath = path.join(outputDir, `${qualityName}_%03d.ts`);
-
-    ffmpeg(inputPath)
-      .size(resolution)
-      .outputOptions([
-        "-preset fast",
-        "-c:v libx264",
-        "-c:a aac",
-        "-hls_time 4",
-        "-hls_playlist_type vod",
-        `-hls_segment_filename ${segmentPath}`,
-      ])
-      .output(playlistPath)
-      .on("end", () => resolve(playlistPath))
-      .on("error", (err) => reject(err))
-      .run();
-  });
-};
-
-// --- Helper 3: AI Moderation (FIXED URL & STRICTER GORE) ---
+// --- Helper: AI Moderation ---
 const checkViolenceAndChaos = async (framePath) => {
   try {
     const PAT = process.env.CLARIFAI_PAT;
@@ -175,30 +153,27 @@ export const startProcessing = async (videoId) => {
       return;
     }
 
-    // --- PHASE 2: HLS GENERATION ---
+// --- PHASE 2: UPLOAD TO CLOUDINARY ---
     await update(30, "processing");
-    const hlsFolder = `uploads/${videoId}`;
-    if (!fs.existsSync(hlsFolder)) fs.mkdirSync(hlsFolder, { recursive: true });
+    const uploadResult = await uploadVideoToCloudinary(video.path, "pulse");
+    const publicId = uploadResult.public_id;
+    await update(80, "processing");
 
-    const p1080 = await generateHLS(video.path, "1920x1080", "1080p", hlsFolder);
-    await update(60, "processing");
-
-    const p720 = await generateHLS(video.path, "1280x720", "720p", hlsFolder);
-    await update(90, "processing");
-
-    const p480 = await generateHLS(video.path, "854x480", "480p", hlsFolder);
+    // Cleanup local file after upload
+    if (fs.existsSync(video.path)) fs.unlinkSync(video.path);
 
     // --- PHASE 3: FINALIZE ---
     await Video.findByIdAndUpdate(videoId, {
-      "qualities.1080p": p1080.replace(/\\/g, "/"),
-      "qualities.720p": p720.replace(/\\/g, "/"),
-      "qualities.480p": p480.replace(/\\/g, "/"),
+      cloudinaryId: publicId,
+      "qualities.1080p": getHLSUrl(publicId, "1080p"),
+      "qualities.720p":  getHLSUrl(publicId, "720p"),
+      "qualities.480p":  getHLSUrl(publicId, "480p"),
       progress: 100,
       status: "safe",
     });
 
     io.emit("video-progress", { videoId, progress: 100, status: "safe" });
-    console.log(`🎉 HLS Stream Ready!`);
+    console.log(`🎉 HLS Stream Ready on Cloudinary!`);
   } catch (error) {
     console.error("Process Fail:", error);
     await Video.findByIdAndUpdate(videoId, { status: "flagged", progress: 0 });
