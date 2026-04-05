@@ -23,7 +23,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // 2. STATIC FILES (CORS for HLS streaming)
-app.use("/uploads", cors(), express.static(path.join(process.cwd(), "uploads")));
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // 3. ROUTES
 app.use("/auth", authRoutes);
