@@ -1,76 +1,349 @@
-# Video Streaming & Content Management Platform
+# 🎬 Pulse — Video Streaming & Content Management Platform
 
-## 📖 Project Overview
-This project is a full-stack, multi-tenant video management platform developed as a comprehensive assignment. It demonstrates high-fidelity HLS video streaming, real-time WebSocket progress tracking, and an automated content moderation pipeline to classify and secure uploaded media.
+A full-stack, multi-tenant **video management and streaming platform** featuring **HLS playback**, **real-time processing updates**, and **automated content moderation**.
+Built as a production-style assignment demonstrating scalable architecture, RBAC security, and optimized video delivery.
 
-## 🚀 Live Links
-* **Frontend Application:** [Insert your Vercel URL here]
-* **Backend API:** [Insert your Render URL here]
+---
 
-## 🛠️ Technology Stack
-* **Frontend:** React (Vite), Tailwind CSS, Framer Motion, Lucide Icons
-* **Backend:** Node.js, Express.js, Mongoose (MongoDB)
-* **Real-time Communication:** Socket.io
-* **Video Delivery:** HLS.js, HTTP Range Requests
-* **Authentication & Security:** JSON Web Tokens (JWT), bcrypt
+# 🌐 Live Deployment
 
-## ✨ Implemented Features
-* **Role-Based Access Control (RBAC):**
-  * `Viewer`: Read-only access to the globally secure video feed.
-  * `Editor`: Capable of uploading new content and tracking real-time processing status.
-  * `Admin`: Full system control, including user role management and global video deletion.
-* **Content Moderation Pipeline:** Automated sensitivity analysis that evaluates videos upon upload before they are available in the public feed.
-* **Real-Time System Feedback:** WebSockets push live processing progress updates to the client interface without requiring page reloads.
-* **Optimized HLS Streaming:** Chunked video delivery utilizing range requests for seamless playback and reduced bandwidth consumption.
+### Frontend
 
-## 🚦 Local Setup Instructions
+https://pulse-topaz-pi.vercel.app/
 
-### 1. Repository Initialization
+### Backend API
+
+https://pulse-nkqh.onrender.com
+
+### GitHub Repository
+
+https://github.com/shiven24k/pulse.git
+
+---
+
+# 📖 Project Overview
+
+Pulse is designed as a **secure multi-role video platform** where users can upload videos, process them into HLS streams, and deliver optimized playback with role-based access.
+
+Key capabilities:
+
+* Multi-tenant architecture
+* HLS adaptive streaming
+* Real-time processing updates
+* Automated content moderation
+* Role-based access control
+* Secure upload pipeline
+* Production-style backend structure
+
+---
+
+# 🛠 Tech Stack
+
+## Frontend
+
+* React (Vite)
+* Tailwind CSS
+* Framer Motion
+* Lucide Icons
+* HLS.js
+
+## Backend
+
+* Node.js
+* Express.js
+* MongoDB (Mongoose)
+* Socket.io
+* FFmpeg (video processing)
+
+## Authentication & Security
+
+* JWT Authentication
+* bcrypt password hashing
+* Role-based access control (RBAC)
+
+## Video Delivery
+
+* HLS Streaming
+* HTTP Range Requests
+* Chunked playback
+
+---
+
+# ✨ Features
+
+## 🔐 Role Based Access Control (RBAC)
+
+### Viewer
+
+* Read-only video feed
+* Watch processed videos
+* No upload access
+
+### Editor
+
+* Upload videos
+* Track processing status
+* View content pipeline
+
+### Admin
+
+* Full platform control
+* Manage user roles
+* Delete videos globally
+* System administration
+
+---
+
+# 🎥 Video Processing Pipeline
+
+When a video is uploaded:
+
+1. Video uploaded via Multer
+2. Stored temporarily
+3. FFmpeg converts to HLS format
+4. Moderation pipeline runs
+5. Progress updates via WebSocket
+6. Video becomes available in feed
+7. Streamed using HLS.js
+
+---
+
+# ⚡ Real-time Progress Tracking
+
+Socket.io provides:
+
+* Upload progress
+* Processing progress
+* Conversion status
+* Moderation results
+* Ready-to-stream notification
+
+No polling required.
+
+---
+
+# 📡 Streaming Architecture
+
+* HLS (.m3u8 playlist)
+* Segment-based delivery (.ts chunks)
+* HTTP range requests
+* Adaptive playback
+* Low bandwidth consumption
+* Fast seeking support
+
+---
+
+# 🔐 API Architecture
+
+## Authentication Routes
+
+### Register
+
+POST /auth/register
+
+Creates a new user
+First user becomes **Admin**
+
+---
+
+### Login
+
+POST /auth/login
+
+Returns JWT token
+
+---
+
+## Video Routes
+
+### Get Videos
+
+GET /videos
+
+Returns video feed based on role
+
+---
+
+### Upload Video
+
+POST /videos
+
+Restricted to:
+
+* Editor
+* Admin
+
+Triggers processing pipeline
+
+---
+
+### Delete Video
+
+DELETE /videos/:id
+
+Restricted to:
+
+* Admin
+
+Deletes:
+
+* DB record
+* HLS files
+* original video
+
+---
+
+## Admin Routes
+
+### Get Users
+
+GET /admin/users
+
+Admin only
+
+---
+
+### Update User Role
+
+PATCH /admin/users/:id/role
+
+Admin only
+
+---
+
+# 🚀 Local Development Setup
+
+## 1. Clone Repository
+
 ```bash
-git clone [your-repo-url]
-cd [repository-name]
+git clone https://github.com/shiven24k/pulse.git
+cd pulse
 ```
-2. Backend Configuration
-Bash
+
+---
+
+# Backend Setup
+
+```bash
 cd backend
 npm install
-Create a .env file in the backend directory with the following variables:
+```
 
-Code snippet
+Create `.env`
+
+```
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_super_secret_key
 CLIENT_URL=http://localhost:5173
-Start the server:
+```
 
-Bash
+Start server
+
+```bash
 npm start
-3. Frontend Configuration
-Bash
+```
+
+---
+
+# Frontend Setup
+
+```bash
 cd frontend
 npm install
-Create a .env file in the frontend directory:
+```
 
-Code snippet
+Create `.env`
+
+```
 VITE_API_URL=http://localhost:5000
-Start the development client:
+```
 
-Bash
+Start frontend
+
+```bash
 npm run dev
-🔐 API Architecture
-Authentication Routes
-POST /auth/register - Registers a new user (the first registered user defaults to Admin status).
+```
 
-POST /auth/login - Authenticates credentials and returns a JWT.
+---
 
-Video Management Routes
-GET /videos - Retrieves the video feed (filtered securely based on the requesting user's RBAC role).
+# 🧠 System Design Highlights
 
-POST /videos - Uploads a new video to the processing pipeline (Restricted to Editor/Admin).
+* Multi-role authorization middleware
+* WebSocket progress architecture
+* HLS file serving via Express static
+* Modular controller architecture
+* Upload → Process → Stream pipeline
+* Secure admin-only endpoints
+* Stateless JWT auth
 
-DELETE /videos/:id - Permanently deletes video records and associated HLS files (Restricted to Admin).
+---
 
-User Administration Routes
-GET /admin/users - Retrieves a list of all registered users.
+# 📁 Project Structure
 
-PATCH /admin/users/:id/role - Modifies a specific user's system access level.
+```
+pulse
+│
+├── frontend
+│   ├── components
+│   ├── pages
+│   ├── hooks
+│   └── utils
+│
+├── backend
+│   ├── routes
+│   ├── controllers
+│   ├── middleware
+│   ├── models
+│   ├── services
+│   └── socket
+│
+└── README.md
+```
+
+---
+
+# 🔒 Security Features
+
+* JWT authentication
+* Role-based middleware
+* Secure upload validation
+* Protected admin routes
+* Password hashing (bcrypt)
+* File access restrictions
+
+---
+
+# 📈 Performance Optimizations
+
+* HLS segmented streaming
+* Range-based video loading
+* FFmpeg compression
+* Chunked delivery
+* Lazy player loading
+* WebSocket instead of polling
+
+---
+
+# 🎯 Assignment Requirements Covered
+
+✅ Multi-tenant architecture
+✅ RBAC system
+✅ Real-time updates
+✅ HLS streaming
+✅ Video upload pipeline
+✅ Content moderation pipeline
+✅ Secure API
+✅ Full stack deployment
+✅ Production structure
+
+---
+
+# 👨‍💻 Author
+
+Shiven Kashyap
+
+GitHub
+https://github.com/shiven24k
+
+---
