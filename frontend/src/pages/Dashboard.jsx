@@ -162,15 +162,18 @@ useEffect(() => {
                       <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.3em] mb-1 block">Active Stream</span>
                       <h3 className="text-xl font-bold">{selectedVideo.title}</h3>
                     </div>
-                    <div className="flex items-center gap-3 bg-white/5 p-1 rounded-xl">
-                      {['480p', '720p', '1080p'].map((q) => (
-                        <button key={q} onClick={() => setQuality(q)} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                          quality === q ? 'bg-white text-slate-950 shadow-lg' : 'hover:bg-white/10 text-white/40'
-                        }`}>{q}</button>
-                      ))}
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl">
+                        {['480p', '720p', '1080p'].map((q) => (
+                          <button key={q} onClick={() => setQuality(q)} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                            quality === q ? 'bg-white text-slate-950 shadow-lg' : 'hover:bg-white/10 text-white/40'
+                          }`}>{q}</button>
+                        ))}
+                      </div>
+                      <button onClick={() => setSelectedVideo(null)} className="p-2 rounded-xl hover:bg-white/10 text-white/40 hover:text-white transition-all cursor-pointer">✕</button>
                     </div>
                   </div>
-                  <HlsVideoPlayer src={`${import.meta.env.VITE_API_URL}/${selectedVideo.qualities[quality]}`} />
+                  <HlsVideoPlayer src={selectedVideo.qualities[quality]} />
                 </motion.section>
               )}
             </AnimatePresence>

@@ -38,7 +38,17 @@ app.use("/videos", videoRoutes);
 
 // 4. SOCKET.IO
 export const io = new Server(server, {
-  cors: { origin: process.env.CLIENT_URL || "http://localhost:5173", credentials: true }
+  cors: {
+    origin: (origin, callback) => {
+      const allowed = process.env.CLIENT_URL || "http://localhost:5173";
+      if (!origin || origin === allowed || origin.endsWith(".vercel.app")) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true
+  }
 });
 
 io.on("connection", (socket) => {

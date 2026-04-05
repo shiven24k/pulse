@@ -8,30 +8,25 @@ export default function HlsVideoPlayer({ src }) {
     const video = videoRef.current;
     if (!video || !src) return;
 
-    let hls;
+    // If it's a plain mp4, just set src directly
+    if (src.includes('.mp4') || (!src.includes('.m3u8') && !src.includes('m3u8'))) {
+      video.src = src;
+      return;
+    }
 
-    // 1. Check if the browser needs hls.js (Chrome, Firefox, Edge)
+    let hls;
     if (Hls.isSupported()) {
       hls = new Hls({ debug: false });
       hls.loadSource(src);
       hls.attachMedia(video);
-      
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().catch(err => console.log("Auto-play prevented by browser:", err));
+        video.play().catch(() => {});
       });
-    } 
-    // 2. Fallback for browsers that support HLS natively (Safari)
-    else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = src;
-      video.addEventListener('loadedmetadata', () => {
-        video.play().catch(err => console.log("Auto-play prevented by browser:", err));
-      });
     }
 
-    // Cleanup to prevent memory leaks when changing videos
-    return () => {
-      if (hls) hls.destroy();
-    };
+    return () => { if (hls) hls.destroy(); };
   }, [src]);
 
   return (

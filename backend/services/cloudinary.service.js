@@ -25,13 +25,15 @@ export const deleteVideoFromCloudinary = (publicId) => {
   return cloudinary.uploader.destroy(publicId, { resource_type: "video" });
 };
 
-// Build a streamable URL for a given quality
+// Build a streamable URL for a given quality using Cloudinary transformations
 export const getHLSUrl = (publicId, quality) => {
   const heights = { "1080p": 1080, "720p": 720, "480p": 480 };
   const height = heights[quality] || 720;
+  // Use mp4 with quality transformation — HLS.js can play mp4 directly
   return cloudinary.url(publicId, {
     resource_type: "video",
-    transformation: [{ height, crop: "scale" }],
-    format: "m3u8",
+    transformation: [{ height, crop: "scale", quality: "auto" }],
+    format: "mp4",
+    secure: true,
   });
 };
