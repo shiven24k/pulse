@@ -20,22 +20,34 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("library"); // Controls Admin view
 
-  useEffect(() => {
-    fetchVideos();
-    const socket = io(import.meta.env.VITE_API_URL);
-    if (user?.id) socket.emit("join_user_room", user.id);
+useEffect(() => {
+  fetchVideos();
+  
+  
+  const socket = io(import.meta.env.VITE_API_URL, {
+    withCredentials: true,
+    transports: ["polling", "websocket"] 
+  });
 
-    socket.on("video-progress", (data) => {
-      setVideos((prev) =>
-        prev.map((vid) =>
-          vid._id === data.videoId ? { ...vid, progress: data.progress, status: data.status } : vid
-        )
-      );
-      if (data.progress === 100 && data.status === "safe") fetchVideos();
-    });
+  if (user?.id) {
+    socket.emit("join_user_room", user.id);
+  }
 
-    return () => socket.disconnect();
-  }, [user]);
+  socket.on("video-progress", (data) => {
+    setVideos((prev) =>
+      prev.map((vid) =>
+        vid._id === data.videoId 
+          ? { ...vid, progress: data.progress, status: data.status } 
+          : vid
+      )
+    );
+    
+    // Logic check: If it's safe, re-fetch to get the fresh HLS URL
+    if (data.status === "safe") fetchVideos();
+  });
+
+  return () => socket.disconnect();
+}, [user]);
 
  const fetchVideos = async () => {
   try {
