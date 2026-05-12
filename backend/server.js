@@ -1,15 +1,13 @@
+import "./env.js"; // must be first — loads .env before any service module reads process.env
 import express from 'express';
 import path from 'path';
 import mongoose from "mongoose";
 import cors from "cors";
-import dotenv from "dotenv";
 import http from "http";
 import { Server } from "socket.io";
 
 import authRoutes from "./routes/auth.routes.js";
 import videoRoutes from "./routes/video.routes.js";
-
-dotenv.config();
 
 const app = express();
 const server = http.createServer(app);

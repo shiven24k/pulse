@@ -1,6 +1,8 @@
 import Video from "../models/Video.js";
 import { io } from "../server.js";
 import ffmpeg from "fluent-ffmpeg";
+import ffmpegStatic from "ffmpeg-static";
+import ffprobeStatic from "ffprobe-static";
 import fs from "fs";
 import path from "path";
 import * as tf from "@tensorflow/tfjs";
@@ -8,8 +10,9 @@ import * as nsfwjs from "nsfwjs";
 import jpeg from "jpeg-js";
 import { uploadVideoToCloudinary, getHLSUrl } from "./cloudinary.service.js";
 
-// Render (Linux) has ffmpeg pre-installed — no installer needed
-// For local Windows dev, install ffmpeg and add it to PATH
+// Use bundled binaries on Windows dev; on Render (Linux) ffmpeg is pre-installed
+if (ffmpegStatic) ffmpeg.setFfmpegPath(ffmpegStatic);
+if (ffprobeStatic?.path) ffmpeg.setFfprobePath(ffprobeStatic.path);
 
 // --- Helper: Extract MULTIPLE frames ---
 const extractFrames = (inputPath, outputFolder, baseName) => {

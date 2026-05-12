@@ -6,19 +6,23 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Upload raw video — returns public_id and secure_url
-export const uploadVideoToCloudinary = (localPath, folder = "pulse") => {
-  return new Promise((resolve, reject) => {
-    cloudinary.uploader.upload(
+// Upload video in 6 MB chunks — cloudinary v2 signature: (path, callback, options)
+export const uploadVideoToCloudinary = (localPath, folder = "vigil") =>
+  new Promise((resolve, reject) => {
+    cloudinary.uploader.upload_large(
       localPath,
-      { resource_type: "video", folder },
       (error, result) => {
         if (error) return reject(error);
         resolve(result);
+      },
+      {
+        resource_type: "video",
+        folder,
+        chunk_size: 6_000_000,
+        timeout: 180_000,
       }
     );
   });
-};
 
 // Delete a video from Cloudinary by public_id
 export const deleteVideoFromCloudinary = (publicId) => {
@@ -32,7 +36,7 @@ export const getHLSUrl = (publicId, quality) => {
   // Use mp4 with quality transformation — HLS.js can play mp4 directly
   return cloudinary.url(publicId, {
     resource_type: "video",
-    transformation: [{ height, crop: "scale", quality: "auto" }],
+    transformation: [{ height, crop: "scale", quality: "auto", fetch_format: "auto" }],
     format: "mp4",
     secure: true,
   });
