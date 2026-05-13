@@ -1,50 +1,75 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect, useRef } from "react";
+import { useAuth, useUser } from "@clerk/clerk-react";
 import axios from "axios";
 import { API_URL } from "../config";
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem("token") || "");
+  const { getToken, signOut } = useAuth();
+  const { user: clerkUser, isLoaded, isSignedIn } = useUser();
+  const [appUser, setAppUser] = useState(null);
+  const [token, setToken] = useState("");
+  const [syncError, setSyncError] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const syncedIdRef = useRef(null);
 
   useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      try {
-        const base64Url = token.split(".")[1];
-        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-        const payload = JSON.parse(window.atob(base64));
-        setUser({ id: payload.id, role: payload.role, email: payload.email });
-      } catch (error) {
-        console.error("Token decode failed", error);
-        logout();
-      }
-    } else {
-      setUser(null);
+    if (!isLoaded) return;
+
+    if (isSignedIn && clerkUser && clerkUser.id !== syncedIdRef.current) {
+      syncedIdRef.current = clerkUser.id;
+      syncWithBackend();
+    } else if (!isSignedIn) {
+      syncedIdRef.current = null;
+      setAppUser(null);
+      setToken("");
+      setSyncError("");
+      delete axios.defaults.headers.common["Authorization"];
     }
-  }, [token]);
+  }, [isSignedIn, isLoaded, clerkUser?.id]);
 
-  const login = async (email, password) => {
-    const res = await axios.post(`${API_URL}/auth/login`, { email, password });
-    setToken(res.data.token);
-    localStorage.setItem("token", res.data.token);
+  const syncWithBackend = async () => {
+    setSyncing(true);
+    setSyncError("");
+    try {
+      const clerkToken = await getToken();
+      if (!clerkToken) throw new Error("No session token from Clerk");
+
+      const res = await axios.post(
+        `${API_URL}/auth/sync`,
+        {},
+        { headers: { Authorization: `Bearer ${clerkToken}` } }
+      );
+      const { token: appToken, user } = res.data;
+      setToken(appToken);
+      setAppUser(user);
+      axios.defaults.headers.common["Authorization"] = `Bearer ${appToken}`;
+    } catch (err) {
+      const detail = err.response?.data?.detail || err.message || "Unknown error";
+      console.error("[AuthContext] sync failed:", detail);
+      setSyncError(detail);
+      // Reset so user can retry after fixing the issue
+      syncedIdRef.current = null;
+    } finally {
+      setSyncing(false);
+    }
   };
 
-  const register = async (email, password) => {
-    const res = await axios.post(`${API_URL}/auth/register`, { email, password });
-    setToken(res.data.token);
-    localStorage.setItem("token", res.data.token);
-  };
-
-  const logout = () => {
+  const logout = async () => {
+    await signOut();
+    syncedIdRef.current = null;
+    setAppUser(null);
     setToken("");
-    localStorage.removeItem("token");
+    setSyncError("");
     delete axios.defaults.headers.common["Authorization"];
   };
 
+  // isReady: Clerk loaded AND (not signed in OR sync finished — success or fail)
+  const isReady = isLoaded && (!isSignedIn || appUser !== null || syncError !== "");
+
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout }}>
+    <AuthContext.Provider value={{ user: appUser, token, logout, isReady, syncError, syncing, retrySync: syncWithBackend }}>
       {children}
     </AuthContext.Provider>
   );
