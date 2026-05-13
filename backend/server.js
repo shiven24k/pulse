@@ -13,16 +13,21 @@ const app = express();
 const server = http.createServer(app);
 
 // 1. GLOBAL MIDDLEWARE
+// CLIENT_URL supports comma-separated origins: "https://vigil.shivenco.com,https://app.vercel.app"
+const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 const corsOptions = {
   origin: (origin, callback) => {
-    const allowed = process.env.CLIENT_URL || "http://localhost:5173";
-    if (!origin || origin === allowed || origin.endsWith(".vercel.app")) {
+    if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
       callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"));
+      callback(new Error(`CORS: origin ${origin} not allowed`));
     }
   },
-  credentials: true
+  credentials: true,
 };
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -38,15 +43,14 @@ app.use("/videos", videoRoutes);
 export const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      const allowed = process.env.CLIENT_URL || "http://localhost:5173";
-      if (!origin || origin === allowed || origin.endsWith(".vercel.app")) {
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
         callback(null, true);
       } else {
-        callback(new Error("Not allowed by CORS"));
+        callback(new Error(`CORS: origin ${origin} not allowed`));
       }
     },
-    credentials: true
-  }
+    credentials: true,
+  },
 });
 
 io.on("connection", (socket) => {
