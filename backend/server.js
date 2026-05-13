@@ -54,6 +54,12 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => console.log("Client disconnected"));
 });
 
+// 4b. GLOBAL ERROR HANDLER — catches anything that slips past route try/catch
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err.message);
+  res.status(500).json({ error: err.message || "Internal server error" });
+});
+
 // 5. DATABASE & START
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("🚀 Mongo connected"))

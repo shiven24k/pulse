@@ -6,7 +6,13 @@ import User from "../models/User.js";
 import auth, { authorize } from "../middleware/auth.js";
 
 const router = express.Router();
-const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+
+// Lazily created so a missing CLERK_SECRET_KEY at startup doesn't crash the import
+let _clerk = null;
+const getClerk = () => {
+  if (!_clerk) _clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+  return _clerk;
+};
 
 // POST /auth/sync — called by the frontend after any Clerk sign-in/sign-up
 // Verifies the Clerk session token, finds or creates a MongoDB user, returns our role-enriched JWT
@@ -28,7 +34,7 @@ router.post("/sync", async (req, res) => {
       return res.status(401).json({ error: "Invalid Clerk token", detail: verifyErr.message });
     }
 
-    const clerkUser = await clerk.users.getUser(clerkUserId);
+    const clerkUser = await getClerk().users.getUser(clerkUserId);
     const email = clerkUser.emailAddresses[0]?.emailAddress;
 
     // Always search by clerkId first, then fall back to email (handles re-linked
