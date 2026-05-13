@@ -9,8 +9,8 @@ A full-stack video management and streaming platform with AI content moderation,
 Use these accounts to explore the platform without registering.
 
 ### Admin
-- Email: `adminForContent@pulse.com`
-- Password: `pulseadmin1234`
+- Email: `admin@vigil.com`
+- Password: `AdminVigil22333`
 - Can: manage user roles, delete videos, upload, view everything
 
 ### Editor
