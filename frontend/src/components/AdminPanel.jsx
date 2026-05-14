@@ -15,11 +15,7 @@ export default function AdminPanel() {
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get(`${API_URL}/auth/users`, {
-        headers: { 
-          Authorization: `Bearer ${localStorage.getItem("token")}` 
-        }
-      });
+      const res = await axios.get(`${API_URL}/auth/users`);
       setUsers(res.data);
     } catch (err) {
       console.error("Failed to fetch users");
@@ -30,11 +26,9 @@ export default function AdminPanel() {
 
   const updateRole = async (userId, newRole) => {
     try {
-      const token = localStorage.getItem("token");
       await axios.patch(
-        `${API_URL}/auth/users/${userId}/role`, 
-        { role: newRole },
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${API_URL}/auth/users/${userId}/role`,
+        { role: newRole }
       );
       // Optimistic UI update
       setUsers(users.map(u => u._id === userId ? { ...u, role: newRole } : u));
