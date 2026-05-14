@@ -366,31 +366,57 @@ export default function Dashboard() {
                               </div>
                             )}
 
-                            {/* Live phase label */}
-                            {isRunning && vid._phase && (
+                            {/* Live phase label for non-analysis phases */}
+                            {isRunning && vid._phase && !["nsfw_check","clarifai_check"].includes(vid._phase) && (
                               <span className="text-[10px] font-bold text-violet-500 bg-violet-50 px-2 py-0.5 border border-violet-100">
                                 {phaseLabel(vid)}
                               </span>
                             )}
-
-                            {/* API indicators during analysis */}
-                            {isRunning && apis && (
-                              <div className="flex items-center gap-1.5">
-                                <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 ${
-                                  vid._phase === "nsfw_check"
-                                    ? "bg-violet-500 text-white"
-                                    : "bg-slate-100 text-slate-400"
-                                }`}>NSFW.js</span>
-                                {apis.clarifai && (
-                                  <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 ${
-                                    vid._phase === "clarifai_check"
-                                      ? "bg-indigo-500 text-white"
-                                      : "bg-slate-100 text-slate-400"
-                                  }`}>Clarifai</span>
-                                )}
-                              </div>
-                            )}
                           </div>
+
+                          {/* ── Live API status rows — visible for the whole pipeline run ── */}
+                          {isRunning && apis && (
+                            <div className="mt-2 space-y-1">
+                              {/* NSFW.js */}
+                              {(() => {
+                                const active = vid._phase === "nsfw_check";
+                                const done   = ["clarifai_check","uploading","finalizing"].includes(vid._phase);
+                                return (
+                                  <div className="flex items-center gap-2">
+                                    {active ? <Loader2 size={11} className="animate-spin text-violet-500 flex-shrink-0" />
+                                            : done ? <CheckCircle2 size={11} className="text-emerald-500 flex-shrink-0" />
+                                            : <div className="w-[11px] h-[11px] rounded-full border border-slate-200 flex-shrink-0" />}
+                                    <span className="text-[11px] font-semibold text-slate-700">
+                                      NSFW.js {active ? `— scanning frame ${vid._frame ?? "…"}/${vid._totalFrames ?? "…"}` : done ? "— done" : "— pending"}
+                                    </span>
+                                  </div>
+                                );
+                              })()}
+
+                              {/* Clarifai */}
+                              {(() => {
+                                const configured = apis.clarifai;
+                                const active     = vid._phase === "clarifai_check";
+                                const done       = configured && ["uploading","finalizing"].includes(vid._phase);
+                                return (
+                                  <div className="flex items-center gap-2">
+                                    {!configured
+                                      ? <XCircle size={11} className="text-red-400 flex-shrink-0" />
+                                      : active ? <Loader2 size={11} className="animate-spin text-indigo-500 flex-shrink-0" />
+                                      : done    ? <CheckCircle2 size={11} className="text-emerald-500 flex-shrink-0" />
+                                      : <div className="w-[11px] h-[11px] rounded-full border border-slate-200 flex-shrink-0" />}
+                                    <span className={`text-[11px] font-semibold ${!configured ? "text-red-400" : "text-slate-700"}`}>
+                                      Clarifai {!configured ? "— unavailable, skipped"
+                                              : active      ? `— scanning frame ${vid._frame ?? "…"}/${vid._totalFrames ?? "…"}`
+                                              : done        ? "— done"
+                                              :               "— waiting"}
+                                    </span>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
+
                         </div>
                       </div>
 

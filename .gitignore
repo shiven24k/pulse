@@ -33,3 +33,7 @@ Thumbs.db
 .cache/
 .parcel-cache/
 .eslintcache
+
+# Temporary video uploads (processed then deleted by the pipeline)
+backend/uploads/*
+!backend/uploads/.gitkeep

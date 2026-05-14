@@ -127,6 +127,7 @@ const runNsfwCheck = async (framePath) => {
 
 export const startProcessing = async (videoId) => {
   let framePaths = [];
+  let localVideoPath = null; // tracked so the catch block can clean it up on any failure
 
   try {
     const video = await Video.findById(videoId);
@@ -180,8 +181,9 @@ export const startProcessing = async (videoId) => {
           break;
         }
         if (result.skipped) {
-          // Token failed at runtime — log once and skip remaining Clarifai frames
           console.warn("[Clarifai] Skipping remaining frames due to API error");
+          // Mark as unavailable so the frontend shows "skipped" for the rest of the pipeline
+          apis.clarifai = false;
           break;
         }
       }
@@ -200,6 +202,7 @@ export const startProcessing = async (videoId) => {
 
     // ── Phase 4: Upload to Cloudinary ─────────────────────────────────────
     const absVideoPath = path.resolve(video.path);
+    localVideoPath = absVideoPath; // register for catch-block cleanup
     if (!fs.existsSync(absVideoPath)) {
       throw new Error(`Source video file missing before upload: ${absVideoPath}`);
     }
@@ -224,6 +227,7 @@ export const startProcessing = async (videoId) => {
     const publicId = uploadResult.public_id;
 
     safeUnlink(absVideoPath);
+    localVideoPath = null; // successfully uploaded — don't double-delete in catch
 
     // ── Phase 5: Finalize HLS ─────────────────────────────────────────────
     await emit(88, "processing", { phase: "finalizing" });
@@ -240,8 +244,8 @@ export const startProcessing = async (videoId) => {
     io.emit("video-progress", { videoId, progress: 100, status: "safe", apis });
     console.log(`✅ Pipeline complete: ${video.title}`);
   } catch (error) {
-    // Cleanup any remaining frames
     framePaths.forEach(safeUnlink);
+    if (localVideoPath) safeUnlink(localVideoPath); // clean up source video on any failure
 
     console.error("❌ Pipeline error:", error.message);
 
