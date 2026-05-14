@@ -15,7 +15,7 @@ const videoSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["uploading", "analyzing", "processing", "safe", "flagged"],
+    enum: ["uploading", "analyzing", "processing", "safe", "flagged", "failed"],
     default: "uploading"
   },
 
