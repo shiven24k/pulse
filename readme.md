@@ -1,4 +1,4 @@
-# Pulse — AI-Moderated Video Streaming Platform
+# Vigil — AI-Moderated Video Streaming Platform
 
 A full-stack video management and streaming platform with AI content moderation, HLS adaptive playback, real-time processing updates, and role-based access control.
 
@@ -14,13 +14,12 @@ Use these accounts to explore the platform without registering.
 - Can: manage user roles, delete videos, upload, view everything
 
 ### Editor
-- Email: `staffEditorSam@pulse.com`
-- Password: `SamEdits`
+- Email: `creator@vigil.com`
+- Password: `CreatorVigil22333`
 - Can: upload videos, track processing, view safe content
 
 ### Viewer
-- Email: `userMe@pulse.com`
-- Password: `userMe1234`
+- Create accout with Oauth or Verified Email 
 - Can: watch safe videos only, no upload access
 
 > New registrations default to the Viewer role. An Admin can promote any user to Editor or Admin from the Users panel.
@@ -29,9 +28,9 @@ Use these accounts to explore the platform without registering.
 
 
 
-- Frontend: https://pulse-topaz-pi.vercel.app
-- Backend API: https://pulse-nkqh.onrender.com
-- GitHub: https://github.com/shiven24k/pulse
+- Frontend: https://Vigil-topaz-pi.vercel.app
+- Backend API: https://Vigil-nkqh.onrender.com
+- GitHub: https://github.com/shiven24k/Vigil
 
 ---
 
@@ -230,7 +229,7 @@ pnpm dev
 ## Project Structure
 
 ```
-pulse/
+Vigil/
 ├── backend/
 │   ├── middleware/
 │   │   ├── auth.js          # JWT auth + authorize() RBAC helper
