@@ -1,5 +1,40 @@
 @import "tailwindcss";
 
 body {
-  @apply bg-slate-50; 
+  @apply bg-slate-50;
+}
+
+/* ── Video player range inputs ────────────────────────────────────────────── */
+input[type='range'].player-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  border-radius: 9999px;
+  outline: none;
+  transition: height 0.15s;
+}
+input[type='range'].player-range:hover {
+  height: 5px;
+}
+input[type='range'].player-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  transition: transform 0.1s;
+}
+input[type='range'].player-range::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+input[type='range'].player-range::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }

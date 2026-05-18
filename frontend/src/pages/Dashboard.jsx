@@ -33,7 +33,6 @@ export default function Dashboard() {
   const [videos, setVideos] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState(null);
-  const [quality, setQuality] = useState("720p");
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("library");
@@ -253,26 +252,23 @@ export default function Dashboard() {
             <AnimatePresence mode="wait">
               {selectedVideo && (
                 <motion.section
+                  key={selectedVideo._id}
                   initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }}
-                  className="bg-slate-950 overflow-hidden border border-white/5 shadow-2xl shadow-slate-900/20"
+                  className="bg-black overflow-hidden border border-white/5 shadow-2xl shadow-slate-900/20"
                 >
-                  <div className="px-8 py-5 flex justify-between items-center text-white/90 border-b border-white/5">
-                    <div>
-                      <span className="text-[10px] font-black text-violet-400 uppercase tracking-[0.3em] mb-1 block">Active Stream</span>
-                      <h3 className="text-base font-bold">{selectedVideo.title}</h3>
+                  <div className="px-6 py-4 bg-slate-950 flex justify-between items-center text-white/90 border-b border-white/5">
+                    <div className="min-w-0 mr-4">
+                      <span className="text-[10px] font-black text-violet-400 uppercase tracking-[0.3em] mb-0.5 block">Now Playing</span>
+                      <h3 className="text-sm font-bold truncate">{selectedVideo.title}</h3>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1 bg-white/5 p-1">
-                        {["480p", "720p", "1080p"].map((q) => (
-                          <button key={q} onClick={() => setQuality(q)} className={`px-4 py-1.5 text-xs font-bold transition-all ${quality === q ? "bg-white text-slate-950" : "hover:bg-white/10 text-white/40"}`}>
-                            {q}
-                          </button>
-                        ))}
-                      </div>
-                      <button onClick={() => setSelectedVideo(null)} className="p-2 hover:bg-white/10 text-white/40 hover:text-white transition-all cursor-pointer">✕</button>
-                    </div>
+                    <button
+                      onClick={() => setSelectedVideo(null)}
+                      className="p-2 flex-shrink-0 hover:bg-white/10 text-white/40 hover:text-white transition-all cursor-pointer"
+                    >
+                      ✕
+                    </button>
                   </div>
-                  <HlsVideoPlayer src={selectedVideo.qualities[quality]} />
+                  <HlsVideoPlayer qualities={selectedVideo.qualities} />
                 </motion.section>
               )}
             </AnimatePresence>
